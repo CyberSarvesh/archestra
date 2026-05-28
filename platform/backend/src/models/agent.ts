@@ -1932,6 +1932,62 @@ class AgentModel {
     }
     throw new Error("Unreachable");
   }
+  static async findByIdForAudit(
+    id: string,
+    organizationId: string,
+  ): Promise<Record<string, unknown> | null> {
+    const [row] = await db
+      .select()
+      .from(schema.agentsTable)
+      .where(
+        and(
+          eq(schema.agentsTable.id, id),
+          eq(schema.agentsTable.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+
+    if (!row) return null;
+
+    // Fetch relational data so audit diffs capture tool/KB/team changes —
+    // not just main-table columns.  Each sub-query is lightweight (index
+    // lookup by agent_id) and the parallel fetch keeps latency low.
+    const [tools, teams, labels, knowledgeBaseIds, connectorIds, delegations] =
+      await Promise.all([
+        AgentToolModel.getToolsForAgent(id),
+        AgentTeamModel.getTeamDetailsForAgent(id),
+        AgentLabelModel.getLabelsForAgent(id),
+        AgentKnowledgeBaseModel.getKnowledgeBaseIds(id),
+        AgentConnectorAssignmentModel.getConnectorIds(id),
+        AgentToolModel.getDelegationTargets(id),
+      ]);
+
+    const delegationTargets = [...delegations]
+      .sort((a, b) => a.id.localeCompare(b.id))
+      .map((d) => ({ id: d.id, name: d.name }));
+
+    return {
+      id: row.id,
+      name: row.name,
+      organizationId: row.organizationId,
+      agentType: row.agentType,
+      scope: row.scope,
+      description: row.description ?? null,
+      systemPrompt: row.systemPrompt ?? null,
+      slug: row.slug ?? null,
+      isDefault: row.isDefault,
+      llmModel: row.llmModel ?? null,
+      toolExposureMode: row.toolExposureMode,
+      toolAssignmentMode: row.toolAssignmentMode,
+      tools: tools.map((t) => t.name).sort(),
+      knowledgeBaseIds: [...knowledgeBaseIds].sort(),
+      connectorIds: [...connectorIds].sort(),
+      teams: teams.map((t) => t.name).sort(),
+      labels: labels.sort(),
+      delegationTargets,
+      createdAt: row.createdAt.toISOString(),
+    };
+  }
 }
 
 const PERSONAL_MCP_GATEWAY_NAME = "My Gateway";

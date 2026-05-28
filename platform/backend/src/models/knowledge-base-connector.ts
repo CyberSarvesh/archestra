@@ -392,6 +392,71 @@ class KnowledgeBaseConnectorModel {
 
     return result ?? null;
   }
+
+  static async findByIdForAudit(
+    id: string,
+    organizationId: string,
+  ): Promise<Record<string, unknown> | null> {
+    const [row] = await db
+      .select()
+      .from(schema.knowledgeBaseConnectorsTable)
+      .where(
+        and(
+          eq(schema.knowledgeBaseConnectorsTable.id, id),
+          eq(
+            schema.knowledgeBaseConnectorsTable.organizationId,
+            organizationId,
+          ),
+        ),
+      )
+      .limit(1);
+
+    if (!row) return null;
+
+    const kbAssigned = await db
+      .select({
+        id: schema.knowledgeBasesTable.id,
+        name: schema.knowledgeBasesTable.name,
+      })
+      .from(schema.knowledgeBaseConnectorAssignmentsTable)
+      .innerJoin(
+        schema.knowledgeBasesTable,
+        eq(
+          schema.knowledgeBaseConnectorAssignmentsTable.knowledgeBaseId,
+          schema.knowledgeBasesTable.id,
+        ),
+      )
+      .where(eq(schema.knowledgeBaseConnectorAssignmentsTable.connectorId, id));
+
+    const knowledgeBases = kbAssigned
+      .map((r) => `${r.name} (${r.id})`)
+      .sort((a, b) => a.localeCompare(b));
+
+    const configKeys =
+      row.config && typeof row.config === "object" && !Array.isArray(row.config)
+        ? Object.keys(row.config as Record<string, unknown>).sort()
+        : [];
+
+    return {
+      id: row.id,
+      name: row.name,
+      description: row.description ?? null,
+      organizationId: row.organizationId,
+      connectorType: row.connectorType,
+      visibility: row.visibility,
+      teamIds: [...(row.teamIds ?? [])].sort(),
+      schedule: row.schedule,
+      enabled: row.enabled,
+      lastSyncStatus: row.lastSyncStatus ?? null,
+      lastSyncAt: row.lastSyncAt?.toISOString() ?? null,
+      lastSyncError: row.lastSyncError
+        ? String(row.lastSyncError).slice(0, 500)
+        : null,
+      knowledgeBases,
+      configKeys,
+      createdAt: row.createdAt.toISOString(),
+    };
+  }
 }
 
 export default KnowledgeBaseConnectorModel;

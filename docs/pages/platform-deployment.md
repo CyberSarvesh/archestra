@@ -1279,6 +1279,15 @@ These environment variables configure the [Knowledge Base](/docs/platform-knowle
   - Default: `true`
   - Set to `false` to use vector similarity search only.
 
+### Audit Log Configuration
+
+The audit log records administrative actions (mutations via `/api/*` and auth events) across your organization. Automatic retention is **disabled by default** - audit rows are kept indefinitely unless an org admin opts in by setting a positive retention window.
+
+- **`ARCHESTRA_AUDIT_LOG_RETENTION_DAYS`** - Number of days to retain audit log records before they are automatically deleted by the daily retention sweep.
+  - Default: `0` (disabled — audit rows are never auto-deleted).
+  - Set to a positive integer (e.g. `90`, `180`) to opt in to automatic purging after that many days.
+  - Must be a non-negative integer; invalid values fall back to the default (disabled).
+  - When enabled, the sweep runs once every 24 hours as a background task.
 #### Knowledge Files External Blob Storage
 
 Uploaded [Knowledge Files](/docs/platform-knowledge-bases#files) store file bytes in the database by default. Set the provider to `s3` to store file bytes externally while keeping metadata and indexing state in PostgreSQL.

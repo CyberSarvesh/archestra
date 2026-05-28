@@ -501,6 +501,9 @@ export const RouteId = {
   GetSkillSourceRepos: "getSkillSourceRepos",
   EnableSkillToolDefaults: "enableSkillToolDefaults",
 
+  // Audit Log Routes
+  GetAuditLogs: "getAuditLogs",
+
   // Skill Share Link Routes
   GetSkillShareLinks: "getSkillShareLinks",
   CreateSkillShareLink: "createSkillShareLink",

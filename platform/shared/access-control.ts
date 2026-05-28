@@ -57,6 +57,7 @@ export const allAvailableActions: Record<Resource, Action[]> = {
 
   // Administration (overrides better-auth defaults to add "read" where needed)
   apiKey: ["read", "create", "delete"],
+  auditLog: ["read"],
   agentSettings: ["read", "update"],
   llmSettings: ["read", "update"],
   knowledgeSettings: ["read", "update"],
@@ -115,6 +116,7 @@ export const editorPermissions: Record<Resource, Action[]> = {
 
   // Administration (overrides better-auth defaults to add "read" where needed)
   apiKey: ["read", "create", "delete"],
+  auditLog: [],
   agentSettings: [],
   llmSettings: ["read", "update"],
   knowledgeSettings: ["read", "update"],
@@ -173,6 +175,7 @@ export const memberPermissions: Record<Resource, Action[]> = {
 
   // Administration (overrides better-auth defaults to add "read" where needed)
   apiKey: ["read", "create", "delete"],
+  auditLog: [],
   agentSettings: [],
   llmSettings: [],
   knowledgeSettings: [],
@@ -352,6 +355,8 @@ export const permissionDescriptions: Record<string, string> = {
   "apiKey:read": "View API keys",
   "apiKey:create": "Create API keys",
   "apiKey:delete": "Delete API keys",
+  "auditLog:read":
+    "View the organization-wide audit log of administrative actions",
   "organizationSettings:read":
     "View organization settings (appearance, authentication, etc)",
   "organizationSettings:update":
@@ -1142,6 +1147,11 @@ export const requiredEndpointPermissionsMap: Partial<
   [RouteId.GetSkillSourceRepos]: { skill: ["read"] },
   [RouteId.EnableSkillToolDefaults]: { skill: ["admin"] },
 
+  // Audit Log Routes
+  [RouteId.GetAuditLogs]: {
+    auditLog: ["read"],
+  },
+
   // Skill Share Link Routes - admin-only. Per-skill org-isolation enforced in handlers.
   // The public marketplace git endpoint stays outside this map; it is allowlisted in
   // the auth middleware (`SKILL_MARKETPLACE_PREFIX`), mirroring `MCP_GATEWAY_PREFIX`.
@@ -1209,6 +1219,7 @@ export const requiredPagePermissionsMap: Record<string, Permissions> = {
   // Logs
   "/llm/logs": { log: ["read"] },
   "/mcp/logs": { log: ["read"] },
+  "/audit/logs": { auditLog: ["read"] },
 
   // Knowledge
   "/knowledge/knowledge-bases": { knowledgeSource: ["read"] },

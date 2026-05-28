@@ -595,6 +595,53 @@ export function parseS3BlobStorageBucket(params: {
 }
 
 /** @public — exported for testability */
+export function parseConnectorSyncMaxDuration(
+  value: string | undefined,
+): number | undefined {
+  const DEFAULT = 3300; // 55 minutes
+  const seconds = Number.parseInt(value || String(DEFAULT), 10);
+  if (Number.isNaN(seconds) || seconds <= 0) return undefined;
+  return seconds;
+}
+
+/** @public — exported for testability */
+export function parseProcessType(value: string | undefined): ProcessType {
+  const normalized = value?.toLowerCase();
+  if (normalized === "web" || normalized === "worker") return normalized;
+  return "all";
+}
+
+/**
+ * Parse ARCHESTRA_AUDIT_LOG_RETENTION_DAYS into a non-negative integer.
+ * Default is 0 (retention disabled — audit rows are never auto-deleted).
+ * Org admins opt in by setting a positive number of days.
+ * @public — exported for testability
+ */
+export const parseAuditLogRetentionDays = (
+  envValue: string | undefined,
+): number => {
+  const DEFAULT_RETENTION_DAYS = 0;
+  const value = envValue?.trim();
+  if (!value) return DEFAULT_RETENTION_DAYS;
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed) || parsed < 0) {
+    logger.warn(
+      `Invalid ARCHESTRA_AUDIT_LOG_RETENTION_DAYS value "${value}", using default ${DEFAULT_RETENTION_DAYS} (disabled)`,
+    );
+    return DEFAULT_RETENTION_DAYS;
+  }
+  return parsed;
+};
+
+/** @public — consumed by config.test.ts */
+export function parseCommaSeparatedList(value: string): string[] {
+  return value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+/** @public — exported for testability */
 export const getAnalyticsConfig = () => ({
   enabled: process.env.ARCHESTRA_ANALYTICS !== "disabled",
   posthog: {
@@ -1162,6 +1209,11 @@ const config = {
   ngrokDomain: process.env.ARCHESTRA_NGROK_DOMAIN || "",
   processType: parseProcessType(process.env.ARCHESTRA_PROCESS_TYPE),
   maintenanceMode: process.env.ARCHESTRA_MAINTENANCE_MODE_MESSAGE || null,
+  auditLog: {
+    retentionDays: parseAuditLogRetentionDays(
+      process.env.ARCHESTRA_AUDIT_LOG_RETENTION_DAYS,
+    ),
+  },
 };
 
 export const shouldRunWebServer = config.processType !== "worker";
@@ -1170,16 +1222,6 @@ export const shouldRunWorker = config.processType !== "web";
 export default config;
 
 // ===== Internal helpers =====
-
-/** @public — exported for testability */
-export function parseConnectorSyncMaxDuration(
-  value: string | undefined,
-): number | undefined {
-  const DEFAULT = 3300; // 55 minutes
-  const seconds = Number.parseInt(value || String(DEFAULT), 10);
-  if (Number.isNaN(seconds) || seconds <= 0) return undefined;
-  return seconds;
-}
 
 /**
  * Get the environment variable API key for a provider.
@@ -1193,19 +1235,4 @@ export function getProviderEnvApiKey(
     return entry.apiKey || undefined;
   }
   return undefined;
-}
-
-/** @public — exported for testability */
-export function parseProcessType(value: string | undefined): ProcessType {
-  const normalized = value?.toLowerCase();
-  if (normalized === "web" || normalized === "worker") return normalized;
-  return "all";
-}
-
-/** @public — exported for testability */
-export function parseCommaSeparatedList(value: string): string[] {
-  return value
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
 }
